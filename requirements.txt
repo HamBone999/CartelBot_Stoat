@@ -1,0 +1,5 @@
+stoat.py
+python-dotenv
+numpy
+psutil
+aiosqlite
