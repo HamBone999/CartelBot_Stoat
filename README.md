@@ -2,7 +2,6 @@
 
 A Discord economy/RPG bot where players run a cartel: hustle for Pesos, grow weed in trap houses, rob and shoot rivals, plan multi-player heists, manage their heat, and climb the ranks from Corner Boy to Kingpin.
 
-Built on **nextcord** with **aiosqlite** persistence. Slash-command only. Designed for Discord App Discovery (no Message Content intent required).
 
 ---
 
