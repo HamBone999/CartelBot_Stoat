@@ -6,20 +6,28 @@ from modules.ui import embed
 HIT, STAND, DOUBLE = "🃏", "✋", "⚡"
 
 
+# Pip symbols render as double-width emoji in Stoat code blocks and break the
+# grid — use single-width letter suits so the ASCII boxes stay aligned.
+SUIT_LETTER = {"♠": "S", "♥": "H", "♦": "D", "♣": "C"}
+
+
 def render_card(card, hidden=False):
     if hidden:
-        return ["┌─────┐", "│░░░░░│", "│░ ? ░│", "│░░░░░│", "└─────┘"]
-    rank, suit = card[:-1], card[-1]
-    if rank == "10":
-        top, bot = f"│{rank}   │", f"│   {rank}│"
-    else:
-        top, bot = f"│{rank}    │", f"│    {rank}│"
-    return ["┌─────┐", top, f"│  {suit}  │", bot, "└─────┘"]
+        return [".-----.", "|/////|", "|/ ? /|", "|/////|", "'-----'"]
+    rank = card[:-1]
+    suit = SUIT_LETTER.get(card[-1], card[-1])
+    return [
+        ".-----.",
+        "|" + rank.ljust(5) + "|",
+        f"|  {suit}  |",
+        "|" + rank.rjust(5) + "|",
+        "'-----'",
+    ]
 
 
 def render_hand(hand, hide_index=None):
     cards = [render_card(c, hidden=(i == hide_index)) for i, c in enumerate(hand)]
-    return "\n".join(" ".join(c[i] for c in cards) for i in range(5))
+    return "\n".join("  ".join(c[i] for c in cards) for i in range(5))
 
 
 def hand_value(hand):
@@ -55,9 +63,9 @@ class Blackjack(commands.Gear):
         dealer_head = hand_value(g["dealer"]) if reveal else "?"
         desc = (
             f"🎩 **Dealer — {dealer_head}**\n"
-            f"```{render_hand(g['dealer'], hide_index=None if reveal else 1)}```\n"
+            f"```\n{render_hand(g['dealer'], hide_index=None if reveal else 1)}\n```\n"
             f"🧍 **You — {pv}**\n"
-            f"```{render_hand(g['player'])}```\n"
+            f"```\n{render_hand(g['player'])}\n```\n"
             f"💰 Bet: **{g['bet']:,} Pesos**" + (" • ⚡ Doubled" if g["doubled"] else "")
         )
         if not reveal:
@@ -93,7 +101,7 @@ class Blackjack(commands.Gear):
     async def _natural(self, ctx, g):
         added, lost = await self.bank.add_to_wallet(ctx.author, int(g["bet"] * 2.5))
         await self.bank.award_xp(ctx.author, 15)
-        desc = (f"```{render_hand(g['player'])}```\n🎩 Dealer:\n```{render_hand(g['dealer'])}```\n"
+        desc = (f"🧍 You:\n```\n{render_hand(g['player'])}\n```\n🎩 Dealer:\n```\n{render_hand(g['dealer'])}\n```\n"
                 f"💰 Payout (3:2): **+{added:,} Pesos** • 🎓 **+15 XP**")
         if lost > 0:
             desc += f"\n❗ Wallet capped — {lost:,} Pesos lost"
@@ -154,12 +162,12 @@ class Blackjack(commands.Gear):
             await self._lose(g)
 
     def _result_desc(self, g):
-        return (f"🎩 Dealer — {hand_value(g['dealer'])}\n```{render_hand(g['dealer'])}```\n"
-                f"🧍 You — {hand_value(g['player'])}\n```{render_hand(g['player'])}```")
+        return (f"🎩 Dealer — {hand_value(g['dealer'])}\n```\n{render_hand(g['dealer'])}\n```\n"
+                f"🧍 You — {hand_value(g['player'])}\n```\n{render_hand(g['player'])}\n```")
 
     async def _bust(self, g):
         await g["msg"].edit(embeds=[embed(title="💥 BUST!", color=0xff0000,
-            description=f"```{render_hand(g['player'])}```\n💸 Lost **{g['bet']:,} Pesos**")])
+            description=f"```\n{render_hand(g['player'])}\n```\n💸 Lost **{g['bet']:,} Pesos**")])
         await self._finish(g)
 
     async def _win(self, g, user):
