@@ -17,18 +17,19 @@ class Fun(commands.Gear):
         if users[1] < amount:
             return await ctx.send("You don't have enough money!")
 
+        await self.bank.update_acc(ctx.author, -amount)  # take the bet first
         result = int(random.randint(1, 7))  # 1..6
-        if result >= 5:
-            profit = int(amount * 3.5)
-            await self.bank.update_acc(ctx.author, profit)
-            await ctx.send(f"🎲 You rolled **{result}** → **JACKPOT!** +**{profit:,} Pesos** 🔥")
-        elif result >= 3:
-            profit = int(amount * 1.8)
-            await self.bank.update_acc(ctx.author, profit)
-            await ctx.send(f"🎲 You rolled **{result}** → Nice! +**{profit:,} Pesos**")
+        if result == 6:
+            added, lost = await self.bank.add_to_wallet(ctx.author, int(amount * 3))
+            msg = f"🎲 You rolled **6** → **JACKPOT!** You win **{added:,} Pesos** (3×) 🔥"
+        elif result >= 4:
+            added, lost = await self.bank.add_to_wallet(ctx.author, int(amount * 1.4))
+            msg = f"🎲 You rolled **{result}** → Win! You get **{added:,} Pesos** (1.4×)"
         else:
-            await self.bank.update_acc(ctx.author, -amount)
-            await ctx.send(f"🎲 You rolled **{result}** → You lost **{amount:,} Pesos** 💸")
+            return await ctx.send(f"🎲 You rolled **{result}** → You lost **{amount:,} Pesos** 💸")
+        if lost > 0:
+            msg += f"\n❗ Wallet capped — {lost:,} Pesos lost."
+        await ctx.send(msg)
 
 
 async def setup(bot):
